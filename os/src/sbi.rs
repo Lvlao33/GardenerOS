@@ -1,5 +1,9 @@
 #![allow(unused)]
 
+#![feature(asm_const)]
+#![feature(riscv_extensions)]
+#![allow(internal_features)]
+
 use core::arch::asm;
 
 const SBI_SET_TIMER: usize = 0;
@@ -17,11 +21,11 @@ fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
     let mut ret;
     unsafe {
         asm!("ecall",
-             in("x10") arg0,
-             in("x11") arg1,
-             in("x12") arg2,
-             in("x17") which,
-             lateout("x10") ret
+             in("a0") arg0,
+             in("a1") arg1,
+             in("a2") arg2,
+             in("a7") which,
+             lateout("a0") ret
         );
     }
     ret

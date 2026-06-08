@@ -31,7 +31,7 @@ $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
 kernel:
-	@cargo build --release
+	@cargo build --release -Zbuild-std=core,alloc --target $(TARGET)
 
 clean:
 	@cargo clean
