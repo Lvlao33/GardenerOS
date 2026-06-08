@@ -10,6 +10,8 @@ mod trap;
 mod loader;
 mod config;
 mod task;
+mod timer;
+
 
 
 
@@ -29,6 +31,9 @@ pub fn rust_main() -> ! {
     trap::init();
     loader::load_apps();
     task::run_first_task();
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
+
     panic!("Unreachable in rust_main!");
 
 }
