@@ -19,11 +19,12 @@ SECTIONS
         *(.sdata .sdata.*)
     }
     .bss : {
-        start_bss = .;
+        sbss = .;
         *(.bss .bss.*)
         *(.sbss .sbss.*)
-        end_bss = .;
+        ebss = .;
     }
+    ekernel = .;
     /DISCARD/ : {
         *(.eh_frame)
         *(.debug*)
