@@ -1,3 +1,5 @@
+use crate::println;
+use crate::config::PAGE_SIZE;
 use bitflags::*;
 use super::{frame_alloc, PhysPageNum, FrameTracker, VirtPageNum, VirtAddr, StepByOne};
 
@@ -64,6 +66,11 @@ pub struct PageTable {
 impl PageTable {
     pub fn new() -> Self {
         let frame = frame_alloc().unwrap();
+            unsafe {
+                let page_ptr = frame.ppn.get_pte_array().as_mut_ptr() as *mut u8;
+                core::ptr::write_bytes(page_ptr, 0, PAGE_SIZE);
+            }
+
         PageTable {
             root_ppn: frame.ppn,
             frames: vec![frame],
@@ -81,6 +88,11 @@ impl PageTable {
             }
             if !pte.is_valid() {
                 let frame = frame_alloc().unwrap();
+                        unsafe {
+                            let page_ptr = frame.ppn.get_pte_array().as_mut_ptr() as *mut u8;
+                            core::ptr::write_bytes(page_ptr, 0, PAGE_SIZE);
+                        }
+
                 *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
                 self.frames.push(frame);
             }
@@ -91,6 +103,11 @@ impl PageTable {
     #[allow(unused)]
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
         let pte = self.find_pte_create(vpn).unwrap();
+        if pte.is_valid() {
+            let va: usize = vpn.into();
+            println!("[DEBUG] duplicate map at va: {:#x}", va);
+        }
+
         assert!(!pte.is_valid(), "vpn {:?} is mapped before mapping", vpn);
         *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
     }
