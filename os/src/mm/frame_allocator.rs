@@ -6,6 +6,10 @@ use crate::config::MEMORY_END;
 use lazy_static::*;
 use core::fmt::{self, Debug, Formatter};
 
+unsafe extern "C" {
+    fn ekernel();
+}
+
 pub struct FrameTracker {
     pub ppn: PhysPageNum,
 }
@@ -96,11 +100,11 @@ lazy_static! {
 
 pub fn init_frame_allocator() {
     unsafe extern "C" {
-        static mut ekernel: u8; 
+         
     }
     FRAME_ALLOCATOR
         .exclusive_access()
-        .init(PhysAddr::from(unsafe {&raw const ekernel as *const u8 as usize}).ceil(), PhysAddr::from(MEMORY_END).floor());
+        .init(PhysAddr::from(unsafe { ekernel as usize }).ceil(), PhysAddr::from(MEMORY_END).floor());
 }
 
 pub fn frame_alloc() -> Option<FrameTracker> {

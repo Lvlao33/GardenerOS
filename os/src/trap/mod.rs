@@ -1,7 +1,6 @@
-use crate::println;
+use crate::{print, println};
 use core::arch::global_asm;
-
-use riscv::trap::{Trap, Exception, Interrupt, TrapMode};
+use core::arch::asm;
 use crate::task::{
     current_user_token,
     current_trap_cx,

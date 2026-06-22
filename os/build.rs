@@ -21,7 +21,12 @@ fn insert_app_data() -> Result<()> {
         })
         .collect();
     apps.sort();
-
+    writeln!(f, r#"
+    .global _app_names
+    _app_names:"#)?;
+    for app in apps.iter() {
+        writeln!(f, r#"    .string "{}""#, app)?;
+    }
     writeln!(f, r#"
     .align 3
     .section .data

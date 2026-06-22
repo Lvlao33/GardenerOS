@@ -1,3 +1,4 @@
+use crate::println;
 use core::arch::asm;
 use bitflags::bitflags;
 use alloc::vec::Vec;
@@ -50,6 +51,7 @@ bitflags! {
     }
 }
 
+
 pub struct MapArea {
     vpn_range: VPNRange,
     data_frames: BTreeMap<VirtPageNum, FrameTracker>,
@@ -87,7 +89,7 @@ impl MapArea {
             }
         }
         let pte_flags = PTEFlags::from_bits(self.map_perm.bits).unwrap();
-        page.map(vpn, ppn, pte_flags);
+        page_table.map(vpn, ppn, pte_flags);
     }
 
     #[allow(unused)]
@@ -134,6 +136,15 @@ impl MapArea {
             current_vpn.step();
         }
     }
+    pub fn from_another(another: &MapArea) -> Self {
+        Self {
+            vpn_range: VPNRange::new(another.vpn_range.get_start(), another.vpn_range.get_end()),
+            data_frames: BTreeMap::new(),
+            map_type: another.map_type,
+            map_perm: another.map_perm,
+        }
+    }
+
 }
 
 pub struct MemorySet {
@@ -232,8 +243,50 @@ impl MemorySet {
             MapType::Identical,
             MapPermission::R | MapPermission::W,
         ), None);
+
+        println!("mapping UART0 device");
+        memory_set.push(MapArea::new(
+                VirtAddr(0x10000000),
+                VirtAddr(0x10001000),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+        ), None);
+
+        println!("mapping PLIC interrupt controller");
+        memory_set.push(MapArea::new(
+                VirtAddr(0x0c000000),
+                VirtAddr(0x0c200000),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+        ), None);
         memory_set
     }
+    pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {
+        if let Some((idx, area)) = self.areas.iter_mut().enumerate().find(|(_, area)| area.vpn_range.get_start() == start_vpn) {
+            area.unmap(&mut self.page_table);
+            self.areas.remove(idx);
+        }
+    }
+
+
+        pub fn from_existed_user(user_space: &MemorySet) -> MemorySet {
+        let mut memory_set = Self::new_bare();
+        // map trampoline
+        memory_set.map_trampoline();
+        // copy data sections/trap_context/user_stack
+        for area in user_space.areas.iter() {
+            let new_area = MapArea::from_another(area);
+            memory_set.push(new_area, None);
+            // copy data from another space
+            for vpn in area.vpn_range {
+                let src_ppn = user_space.translate(vpn).unwrap().ppn();
+                let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
+                dst_ppn.get_bytes_array().copy_from_slice(src_ppn.get_bytes_array());
+            }
+        }
+        memory_set
+    }
+
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
         let mut memory_set = Self::new_bare();
         memory_set.map_trampoline();
@@ -278,7 +331,7 @@ impl MemorySet {
         ), None);
         memory_set.push(MapArea::new(
             TRAP_CONTEXT.into(),
-            TRAMPOLINE.into(),
+            (TRAP_CONTEXT + PAGE_SIZE).into(),
             MapType::Framed,
             MapPermission::R | MapPermission::W,
         ), None);
@@ -303,3 +356,4 @@ pub fn remap_test() {
     assert!(!kernel_space.translate(mid_data.floor()).unwrap().executable());
     println!("remap_test passed!");
 }
+

@@ -58,7 +58,7 @@ debug: build
 		tmux -2 attach-session -d
 
 elf: $(APPS)
-        @cargo build --release
+	@cargo build --release
 
 
 .PHONY: build env kernel clean disasm disasm-vim run debug
